@@ -1,6 +1,6 @@
 use crate::EventEmitter;
 use serde::{Deserialize, Serialize};
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 #[test]
 fn on() {
@@ -8,12 +8,13 @@ fn on() {
     let mut counter: Arc<Mutex<u32>> = Arc::new(Mutex::new(5));
 
     let cloned_counter = Arc::clone(&counter);
-    event_emitter.on("Set", move |value: u32| { 
-        *cloned_counter.lock().unwrap() = value; 
+    event_emitter.on("Set", move |value: u32| {
+        *cloned_counter.lock().unwrap() = value;
     });
 
     let callbacks = event_emitter.emit("Set", 10 as u32);
-    for callback in callbacks { // Wait for emitted callbacks to finish executing
+    for callback in callbacks {
+        // Wait for emitted callbacks to finish executing
         callback.join();
     }
 
@@ -24,19 +25,20 @@ fn on() {
     );
 
     struct Container {
-        list: Vec<String>
+        list: Vec<String>,
     }
 
     let mut container: Arc<Mutex<Container>> = Arc::new(Mutex::new(Container { list: Vec::new() }));
 
     let cloned_container = Arc::clone(&container);
-    event_emitter.on("Add Value To List", move |value: String| { 
-        let mut container = cloned_container.lock().unwrap(); 
+    event_emitter.on("Add Value To List", move |value: String| {
+        let mut container = cloned_container.lock().unwrap();
         (*container).list.push(value);
     });
 
     let callbacks = event_emitter.emit("Add Value To List", "hello".to_string());
-    for callback in callbacks { // Wait for emitted callbacks to finish executing
+    for callback in callbacks {
+        // Wait for emitted callbacks to finish executing
         callback.join();
     }
 
@@ -78,26 +80,47 @@ fn on_limited() {
     let mut counter: Arc<Mutex<u32>> = Arc::new(Mutex::new(5));
 
     let cloned_counter = Arc::clone(&counter);
-    event_emitter.on_limited("Set", Some(2), move |value: u32| { 
-        *cloned_counter.lock().unwrap() = value; 
+    event_emitter.on_limited("Set", Some(2), move |value: u32| {
+        *cloned_counter.lock().unwrap() = value;
     });
     assert_eq!(
         2,
-        event_emitter.listeners.get("Set").unwrap().first().unwrap().limit.unwrap(),
+        event_emitter
+            .listeners
+            .get("Set")
+            .unwrap()
+            .first()
+            .unwrap()
+            .limit
+            .unwrap(),
         "Listener should have been added with a limit of 2 calls"
     );
 
     event_emitter.emit("Set", 10 as u32);
     assert_eq!(
         1,
-        event_emitter.listeners.get("Set").unwrap().first().unwrap().limit.unwrap(),
+        event_emitter
+            .listeners
+            .get("Set")
+            .unwrap()
+            .first()
+            .unwrap()
+            .limit
+            .unwrap(),
         "Listener limit should have been reduced by 1"
     );
 
     event_emitter.emit("Set", 10 as u32);
     assert_eq!(
         0,
-        event_emitter.listeners.get("Set").unwrap().first().unwrap().limit.unwrap(),
+        event_emitter
+            .listeners
+            .get("Set")
+            .unwrap()
+            .first()
+            .unwrap()
+            .limit
+            .unwrap(),
         "Listener should have 0 calls left"
     );
 
@@ -110,14 +133,12 @@ fn on_limited() {
 }
 
 #[test]
-fn once() {
-
-}
+fn once() {}
 
 mod event_emitter_file {
-    use std::sync::Mutex;
     use crate::EventEmitter;
-    
+    use std::sync::Mutex;
+
     lazy_static! {
         pub static ref EVENT_EMITTER: Mutex<EventEmitter> = Mutex::new(EventEmitter::new());
     }
@@ -127,6 +148,9 @@ mod event_emitter_file {
 fn global_emitter() {
     use event_emitter_file::EVENT_EMITTER;
 
-    EVENT_EMITTER.lock().unwrap().on("Hello", |_: ()| println!("hello there!"));
+    EVENT_EMITTER
+        .lock()
+        .unwrap()
+        .on("Hello", |_: ()| println!("hello there!"));
     EVENT_EMITTER.lock().unwrap().emit("Hello", ());
 }

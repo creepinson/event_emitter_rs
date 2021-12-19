@@ -1,4 +1,4 @@
-/*! 
+/*!
 [![](http://meritbadge.herokuapp.com/event-emitter-rs)](https://crates.io/crates/event-emitter-rs)
 
 A simple EventEmitter implementation.
@@ -14,7 +14,7 @@ let mut event_emitter = EventEmitter::new();
 
 // This will print <"Hello world!"> whenever the <"Say Hello"> event is emitted
 event_emitter.on("Say Hello", |value: ()| println!("Hello world!"));
-event_emitter.emit("Say Hello", ()); 
+event_emitter.emit("Say Hello", ());
 // >> "Hello world!"
 ```
 
@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 let mut event_emitter = EventEmitter::new();
 
 event_emitter.on("Add three", |number: f32| println!("{}", number + 3.0));
-event_emitter.emit("Add three", 5.0 as f32); 
+event_emitter.emit("Add three", 5.0 as f32);
 event_emitter.emit("Add three", 4.0 as f32);
 // >> "8.0"
 // >> "7.0"
@@ -38,16 +38,16 @@ event_emitter.emit("Add three", 4.0 as f32);
 #[derive(Serialize, Deserialize)]
 struct Date {
     month: String,
-    day: String,   
+    day: String,
 }
 
 event_emitter.on("LOG_DATE", |date: Date| {
     println!("Month: {} - Day: {}", date.month, date.day)
 });
-event_emitter.emit("LOG_DATE", Date { 
-    month: "January".to_string(), 
-    day: "Tuesday".to_string() 
-}); 
+event_emitter.emit("LOG_DATE", Date {
+    month: "January".to_string(),
+    day: "Tuesday".to_string()
+});
 // >> "Month: January - Day: Tuesday"
 ```
 
@@ -114,10 +114,10 @@ fn random_function() {
 //#[cfg(test)]
 mod tests;
 
-use std::collections::HashMap;
-use std::thread;
-use std::sync::Arc;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::thread;
 
 #[macro_use]
 extern crate lazy_static;
@@ -134,15 +134,13 @@ pub struct Listener {
 
 #[derive(Default)]
 pub struct EventEmitter {
-    pub listeners: HashMap<String, Vec<Listener>>
+    pub listeners: HashMap<String, Vec<Listener>>,
 }
 
 impl EventEmitter {
     // Potentially may want to add features here in the future so keep it like this
     pub fn new() -> Self {
-        Self {
-            ..Self::default()
-        }
+        Self { ..Self::default() }
     }
 
     /// Adds an event listener with a callback that will get called whenever the given event is emitted.
@@ -155,14 +153,14 @@ impl EventEmitter {
     /// let mut event_emitter = EventEmitter::new();
     ///
     /// // This will print <"Hello world!"> whenever the <"Some event"> event is emitted
-    /// // The type of the `value` parameter for the closure MUST be specified and, if you plan to use the `value`, the `value` type 
+    /// // The type of the `value` parameter for the closure MUST be specified and, if you plan to use the `value`, the `value` type
     /// // MUST also match the type that is being emitted (here we just use a throwaway `()` type since we don't care about using the `value`)
     /// event_emitter.on("Some event", |value: ()| println!("Hello world!"));
     /// ```
     pub fn on<F, T>(&mut self, event: &str, callback: F) -> String
-        where 
-            for<'de> T: Deserialize<'de>,
-            F: Fn(T) + 'static + Sync + Send 
+    where
+        for<'de> T: Deserialize<'de>,
+        F: Fn(T) + 'static + Sync + Send,
     {
         let id = self.on_limited(event, None, callback);
         return id;
@@ -181,24 +179,25 @@ impl EventEmitter {
     /// event_emitter.emit("Some event", "Hello programmer!");
     /// ```
     pub fn emit<T>(&mut self, event: &str, value: T) -> Vec<thread::JoinHandle<()>>
-        where T: Serialize
+    where
+        T: Serialize,
     {
         let mut callback_handlers: Vec<thread::JoinHandle<()>> = Vec::new();
 
         if let Some(listeners) = self.listeners.get_mut(event) {
             let bytes: Vec<u8> = bincode::serialize(&value).unwrap();
-            
+
             let mut listeners_to_remove: Vec<usize> = Vec::new();
             for (index, listener) in listeners.iter_mut().enumerate() {
                 let cloned_bytes = bytes.clone();
                 let callback = Arc::clone(&listener.callback);
 
                 match listener.limit {
-                    None => { 
-                        callback_handlers.push(thread::spawn(move || { 
+                    None => {
+                        callback_handlers.push(thread::spawn(move || {
                             callback(cloned_bytes);
-                        })); 
-                    },
+                        }));
+                    }
                     Some(limit) => {
                         if limit != 0 {
                             callback_handlers.push(thread::spawn(move || {
@@ -235,10 +234,13 @@ impl EventEmitter {
     /// ```
     pub fn remove_listener(&mut self, id_to_delete: &str) -> Option<String> {
         for (_, event_listeners) in self.listeners.iter_mut() {
-            if let Some(index) = event_listeners.iter().position(|listener| listener.id == id_to_delete) {
+            if let Some(index) = event_listeners
+                .iter()
+                .position(|listener| listener.id == id_to_delete)
+            {
                 event_listeners.remove(index);
                 return Some(id_to_delete.to_string());
-            } 
+            }
         }
 
         return None;
@@ -261,9 +263,9 @@ impl EventEmitter {
     /// event_emitter.emit("Some event", ()); // 4 >> <Nothing happens here because listener was deleted after the 3rd call>
     /// ```
     pub fn on_limited<F, T>(&mut self, event: &str, limit: Option<u64>, callback: F) -> String
-        where 
-            for<'de> T: Deserialize<'de>,
-            F: Fn(T) + 'static + Sync + Send 
+    where
+        for<'de> T: Deserialize<'de>,
+        F: Fn(T) + 'static + Sync + Send,
     {
         let id = Uuid::new_v4().to_string();
         let parsed_callback = move |bytes: Vec<u8>| {
@@ -278,8 +280,12 @@ impl EventEmitter {
         };
 
         match self.listeners.get_mut(event) {
-            Some(callbacks) => { callbacks.push(listener); },
-            None => { self.listeners.insert(event.to_string(), vec![listener]); }
+            Some(callbacks) => {
+                callbacks.push(listener);
+            }
+            None => {
+                self.listeners.insert(event.to_string(), vec![listener]);
+            }
         }
 
         return id;
@@ -302,9 +308,9 @@ impl EventEmitter {
     /// // >> <Nothing happens here since listener was deleted>
     /// ```
     pub fn once<F, T>(&mut self, event: &str, callback: F) -> String
-        where 
-            for<'de> T: Deserialize<'de>,
-            F: Fn(T) + 'static + Sync + Send 
+    where
+        for<'de> T: Deserialize<'de>,
+        F: Fn(T) + 'static + Sync + Send,
     {
         let id = self.on_limited(event, Some(1), callback);
         return id;
@@ -328,8 +334,9 @@ impl EventEmitter {
     /// // The value can be of any type
     /// event_emitter.sync_emit("Some event", "Hello programmer!");
     /// ```
-    pub fn sync_emit<T>(&self, event: &str, value: T) 
-        where T: Serialize
+    pub fn sync_emit<T>(&self, event: &str, value: T)
+    where
+        T: Serialize,
     {
     }
 }
